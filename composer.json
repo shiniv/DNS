@@ -1,5 +1,5 @@
 {
-    "name": "badcow/dns",
+    "name": "shiniv/dns",
     "description": "A PHP library for creating DNS zone files based on RFC1035",
     "stability": "dev",
     "authors": [
