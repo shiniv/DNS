@@ -97,7 +97,7 @@ class Validator
 
         foreach ($parts as $part) {
             //Does the string begin with a non alpha char?
-            if (1 === preg_match('/^[^a-z]/i', $part)) {
+            if (1 === preg_match('/^[^a-z0-9]/i', $part)) {
                 return false;
             }
 
@@ -138,7 +138,7 @@ class Validator
 
         foreach ($parts as $i => $part) {
             //Does the string begin with a non alpha char?
-            if (1 === preg_match('/^[^a-z]/', $part)) {
+            if (1 === preg_match('/^[^a-z0-9]/', $part)) {
                 if ('*' === $part && 0 === $i) {
                     continue;
                 }
@@ -203,7 +203,6 @@ class Validator
     /**
      * Validates a zone file.
      *
-     * @deprecated
      * @param string $zonename
      * @param string $directory
      * @param string $named_checkzonePath
@@ -321,8 +320,6 @@ class Validator
     }
 
     /**
-     * Counts the number of Resource Records of a particular type ($type) in a Zone.
-     *
      * @param ZoneInterface $zone
      * @param null $type The ResourceRecord type to be counted. If NULL, then the method will return
      *                   the total number of resource records.
@@ -348,8 +345,6 @@ class Validator
     }
 
     /**
-     * Validates a reverse IPv4 address. Ensures that all octets are in the range [0-255].
-     *
      * @param string $address
      *
      * @return bool
@@ -375,8 +370,6 @@ class Validator
     }
 
     /**
-     * Validates a reverse IPv6 address.
-     *
      * @param string $address
      *
      * @return bool
