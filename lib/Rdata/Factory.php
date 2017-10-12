@@ -183,7 +183,7 @@ class Factory
     public static function Ptr($target)
     {
         $rdata = new PtrRdata();
-        $rdata->setTarget($target);
+        $rdata->setAddress($target);
 
         return $rdata;
     }
