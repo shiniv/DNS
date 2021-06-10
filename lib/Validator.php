@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of Badcow DNS Library.
  *
@@ -11,8 +13,9 @@
 
 namespace Badcow\DNS;
 
-use Badcow\DNS\Rdata\NsRdata;
-use Badcow\DNS\Rdata\SoaRdata;
+use Badcow\DNS\Rdata\CNAME;
+use Badcow\DNS\Rdata\NS;
+use Badcow\DNS\Rdata\SOA;
 
 class Validator
 {
@@ -29,70 +32,26 @@ class Validator
     const ZONE_TOO_MANY_CLASSES = 16;
 
     /**
-     * Validates if $string is suitable as an RR name.
-     *
-     * @param string $string
-     * @param bool   $mustHaveTrailingDot
-     *
-     * @return bool
+     * Validate the string as a valid hostname in accordance with RFC 952 {@link https://tools.ietf.org/html/rfc952}
+     * and RFC 1123 {@link https://tools.ietf.org/html/rfc1123}.
      */
-    public static function rrName($string, $mustHaveTrailingDot = false)
+    public static function hostName(string $name): bool
     {
-        if ($string === '@' ||
-            self::reverseIpv4($string) ||
-            self::reverseIpv6($string)
-        ) {
-            return true;
-        }
-
-        if ($string === '*.') {
-            return false;
-        }
-
-        $parts = explode('.', strtolower($string));
-
-        if ('' !== end($parts) && $mustHaveTrailingDot) {
-            return false;
-        }
-
-        if ('' === end($parts)) {
-            array_pop($parts);
-        }
-
-        foreach ($parts as $i => $part) {
-            //Does the string begin with a non alphanumeric char?
-            if (1 === preg_match('/^[^a-z0-9]/', $part)) {
-                if ('*' === $part && 0 === $i) {
-                    continue;
-                }
-
-                return false;
-            }
-
-            if (1 !== preg_match('/^[a-z0-9_\-]+$/i', $part)) {
-                return false;
-            }
-        }
-
-        return true;
+        return (bool) filter_var($name, FILTER_VALIDATE_DOMAIN, [
+            'flags' => FILTER_FLAG_HOSTNAME,
+        ]);
     }
 
     /**
-     * Validate the string as a Fully Qualified Domain Name.
-     *
-     * @param string $string
-     *
-     * @return bool
+     * Validate the string is a Fully Qualified Domain Name.
      */
-    public static function fqdn($string)
+    public static function fullyQualifiedDomainName(string $name): bool
     {
-        $parts = explode('.', strtolower($string));
-
-        //Is there are trailing dot?
-        if ('' !== end($parts)) {
+        if ('.' !== substr($name, -1, 1)) {
             return false;
         }
 
+<<<<<<< HEAD
         array_pop($parts);
 
         foreach ($parts as $part) {
@@ -107,16 +66,18 @@ class Validator
         }
 
         return true;
+=======
+        return self::hostName($name);
+>>>>>>> upstream/master
     }
 
     /**
-     * @param string $string
-     * @param bool   $trailingDot Require trailing dot
-     *
-     * @return bool
+     * Validate the name for a Resource Record. This is distinct from validating a hostname in that this function
+     * will permit '@' and wildcards as well as underscores used in SRV records.
      */
-    public static function validateFqdn($string, $trailingDot = true)
+    public static function resourceRecordName(string $name): bool
     {
+<<<<<<< HEAD
         if ($string === '@') {
             return true;
         }
@@ -152,20 +113,20 @@ class Validator
         }
 
         return true;
+=======
+        return strlen($name) < 254 &&
+            (1 === preg_match('/(?:^(?:\*\.)?((?!-)[a-z0-9_\-]{1,63}(?<!-)\.?){1,127}$)|^@$|^\*$/i', $name));
+>>>>>>> upstream/master
     }
 
     /**
      * Validates an IPv4 Address.
      *
      * @static
-     *
-     * @param string $ipAddress
-     *
-     * @return bool
      */
-    public static function validateIpv4Address($ipAddress)
+    public static function ipv4(string $address): bool
     {
-        return (bool) filter_var($ipAddress, FILTER_VALIDATE_IP, [
+        return (bool) filter_var($address, FILTER_VALIDATE_IP, [
             'flags' => FILTER_FLAG_IPV4,
         ]);
     }
@@ -174,14 +135,10 @@ class Validator
      * Validates an IPv6 Address.
      *
      * @static
-     *
-     * @param string $ipAddress
-     *
-     * @return bool
      */
-    public static function validateIpv6Address($ipAddress)
+    public static function ipv6(string $address): bool
     {
-        return (bool) filter_var($ipAddress, FILTER_VALIDATE_IP, [
+        return (bool) filter_var($address, FILTER_VALIDATE_IP, [
             'flags' => FILTER_FLAG_IPV6,
         ]);
     }
@@ -190,6 +147,7 @@ class Validator
      * Validates an IPv4 or IPv6 address.
      *
      * @static
+<<<<<<< HEAD
      *
      * @param $ipAddress
      *
@@ -208,56 +166,12 @@ class Validator
      * @param string $named_checkzonePath
      *
      * @return bool
+=======
+>>>>>>> upstream/master
      */
-    public static function validateZoneFile($zonename, $directory, $named_checkzonePath = 'named-checkzone')
+    public static function ipAddress(string $address): bool
     {
-        $command = sprintf('%s -q %s %s', $named_checkzonePath, $zonename, $directory);
-        exec($command, $output, $exit_status);
-
-        return $exit_status === 0;
-    }
-
-    /**
-     * Validates that the zone meets
-     * RFC-1035 especially that:
-     *   1) 5.2.1 All RRs in the file should be of the same class.
-     *   2) 5.2.2 Exactly one SOA RR should be present at the top of the zone.
-     *   3) There is at least one NS record.
-     *
-     * @deprecated
-     * @param ZoneInterface $zone
-     *
-     * @throws ZoneException
-     *
-     * @return bool
-     */
-    public static function validate(ZoneInterface $zone)
-    {
-        $n_soa = self::countResourceRecords($zone, SoaRdata::TYPE);
-        $n_ns = self::countResourceRecords($zone, NsRdata::TYPE);
-        $classes = [];
-
-        foreach ($zone->getResourceRecords() as $rr) {
-            if (null !== $rr->getClass()) {
-                $classes[$rr->getClass()] = null;
-            }
-        }
-
-        $n_class = count($classes);
-
-        if (1 !== $n_soa) {
-            throw new ZoneException(sprintf('There must be exactly one SOA record, %s given.', $n_soa));
-        }
-
-        if ($n_ns < 1) {
-            throw new ZoneException(sprintf('There must be at least one NS record, %s given.', $n_ns));
-        }
-
-        if (1 !== $n_class) {
-            throw new ZoneException(sprintf('There must be exactly one type of class, %s given.', $n_class));
-        }
-
-        return true;
+        return (bool) filter_var($address, FILTER_VALIDATE_IP);
     }
 
     /**
@@ -277,83 +191,66 @@ class Validator
      *
      * You SHOULD compare these return values to the defined constants of this
      * class rather than against integers directly.
-     *
-     * @param ZoneInterface $zone
-     *
-     * @return integer
      */
-    public static function zone(ZoneInterface $zone)
+    public static function zone(Zone $zone): int
     {
-        $n_soa = self::countResourceRecords($zone, SoaRdata::TYPE);
-        $n_ns = self::countResourceRecords($zone, NsRdata::TYPE);
-        $classes = [];
+        $n_soa = self::countResourceRecords($zone, SOA::TYPE);
+        $n_ns = self::countResourceRecords($zone, NS::TYPE);
+        $n_class = self::countClasses($zone);
 
-        foreach ($zone->getResourceRecords() as $rr) {
-            if (null !== $rr->getClass()) {
-                $classes[$rr->getClass()] = null;
-            }
-        }
+        $totalError = 0;
 
-        $n_class = count($classes);
+        $incrementError = function (bool $errorCondition, int $errorOrdinal) use (&$totalError): void {
+            $totalError += $errorCondition ? $errorOrdinal : 0;
+        };
 
-        if ($n_soa < 1) {
-            return self::ZONE_NO_SOA;
-        }
+        $incrementError($n_soa < 1, self::ZONE_NO_SOA);
+        $incrementError($n_soa > 1, self::ZONE_TOO_MANY_SOA);
+        $incrementError($n_ns < 1, self::ZONE_NO_NS);
+        $incrementError($n_class < 1, self::ZONE_NO_CLASS);
+        $incrementError($n_class > 1, self::ZONE_TOO_MANY_CLASSES);
 
-        if ($n_soa > 1) {
-            return self::ZONE_TOO_MANY_SOA;
-        }
-
-        if ($n_ns < 1) {
-            return self::ZONE_NO_NS;
-        }
-
-        if ($n_class < 1) {
-            return self::ZONE_NO_CLASS;
-        }
-
-        if ($n_class > 1) {
-            return self::ZONE_TOO_MANY_CLASSES;
-        }
-
-        return self::ZONE_OKAY;
+        return $totalError;
     }
 
     /**
+<<<<<<< HEAD
      * @param ZoneInterface $zone
      * @param null $type The ResourceRecord type to be counted. If NULL, then the method will return
      *                   the total number of resource records.
+=======
+     * Counts the number of Resource Records of a particular type ($type) in a Zone.
      *
-     * @return int The number of records to be counted.
+     * @param string $type The ResourceRecord type to be counted. If NULL, then the method will return
+     *                     the number of records without RData.
+>>>>>>> upstream/master
+     *
+     * @return int the number of records to be counted
      */
-    public static function countResourceRecords(ZoneInterface $zone, $type = null)
+    public static function countResourceRecords(Zone $zone, ?string $type = null): int
     {
-        if (null === $type) {
-            return count($zone->getResourceRecords());
-        }
-
         $n = 0;
-
-        foreach ($zone->getResourceRecords() as $rr) {
-            /* @var $rr ResourceRecordInterface */
-            if ($type === $rr->getRdata()->getType()) {
-                $n += 1;
-            }
+        foreach ($zone as $rr) {
+            $n += (int) ($type === $rr->getType());
         }
 
         return $n;
     }
 
     /**
+<<<<<<< HEAD
      * @param string $address
      *
      * @return bool
+=======
+     * Validates a reverse IPv4 address. Ensures that all octets are in the range [0-255].
+>>>>>>> upstream/master
      */
-    public static function reverseIpv4($address)
+    public static function reverseIpv4(string $address): bool
     {
         $pattern = '/^((?:[0-9]+\.){1,4})in\-addr\.arpa\.$/i';
 
-        if(1 !== preg_match($pattern, $address, $matches)) {
+        if (1 !== preg_match($pattern, $address, $matches)) {
             return false;
         }
 
@@ -370,14 +267,118 @@ class Validator
     }
 
     /**
+<<<<<<< HEAD
      * @param string $address
      *
      * @return bool
+=======
+     * Validates a reverse IPv6 address.
+>>>>>>> upstream/master
      */
-    public static function reverseIpv6($address)
+    public static function reverseIpv6(string $address): bool
     {
         $pattern = '/^(?:[0-9a-f]\.){1,32}ip6\.arpa\.$/i';
 
         return 1 === preg_match($pattern, $address);
+    }
+
+    /**
+     * Determine the number of unique non-null classes in a Zone. In a valid zone this MUST be 1.
+     */
+    private static function countClasses(Zone $zone): int
+    {
+        $classes = [];
+
+        foreach ($zone as $rr) {
+            if (null !== $rr->getClass()) {
+                $classes[$rr->getClass()] = null;
+            }
+        }
+
+        return count($classes);
+    }
+
+    /**
+     * Ensure $zone does not contain existing CNAME alias corresponding to $newRecord's name.
+     *
+     * E.g.
+     *      www IN CNAME example.com.
+     *      www IN TXT "This is a violation of DNS specifications."
+     *
+     * @see https://tools.ietf.org/html/rfc1034#section-3.6.2
+     */
+    public static function noAliasInZone(Zone $zone, ResourceRecord $newRecord): bool
+    {
+        foreach ($zone as $rr) {
+            if (CNAME::TYPE === $rr->getType()
+                && $newRecord->getName() === $rr->getName()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Determine if string is a base64 encoded string.
+     *
+     * @param string $string A base64 encoded string
+     */
+    public static function isBase64Encoded(string $string): bool
+    {
+        if (1 !== preg_match('/^[a-zA-Z0-9\/\r\n+ ]*={0,2}$/', $string)) {
+            return false;
+        }
+
+        if (null === $string = preg_replace('/[^a-zA-Z0-9\/+=]/', '', $string)) {
+            return false;
+        }
+
+        if (false === $decoded = base64_decode($string, true)) {
+            return false;
+        }
+
+        return $string === base64_encode($decoded);
+    }
+
+    /**
+     * Determine if string is a base32 encoded string.
+     */
+    public static function isBase32Encoded(string $string): bool
+    {
+        return 1 === preg_match('/^[A-Z2-7]+=*$/', $string);
+    }
+
+    /**
+     * Determine if string is a base32hex (extended hex) encoded string.
+     */
+    public static function isBase32HexEncoded(string $string): bool
+    {
+        return 1 === preg_match('/^[a-zA-Z0-9]+=*$/', $string);
+    }
+
+    /**
+     * Determine if string is a base16 encoded string.
+     */
+    public static function isBase16Encoded(string $string): bool
+    {
+        return 1 === preg_match('/^[0-9a-f]+$/i', $string);
+    }
+
+    /**
+     * Determine if $integer is an unsigned integer less than 2^$numberOfBits.
+     *
+     * @param int $integer      The integer to test
+     * @param int $numberOfBits The upper limit that the integer can be expressed as an exponent of 2
+     */
+    public static function isUnsignedInteger(int $integer, int $numberOfBits): bool
+    {
+        $maxBits = PHP_INT_SIZE * 8 - 1;
+
+        if ($numberOfBits > $maxBits) {
+            throw new \RuntimeException(sprintf('Number of bits "%d" exceeds maximum binary exponent of "%d".', $numberOfBits, $maxBits));
+        }
+
+        return (0 <= $integer) && ($integer < (2 ** $numberOfBits));
     }
 }

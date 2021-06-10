@@ -1,18 +1,27 @@
-Badcow DNS Zone Library
-=======================
+Badcow DNS Library
+==================
+The aim of this project is to create abstract object representations of DNS records in PHP. The project consists of various
+classes representing DNS objects (such as `Zone`, `ResourceRecord`, and various `RData` types), a parser to convert BIND
+style text files to the PHP objects, and builders to create aesthetically pleasing BIND records.
 
-This library constructs DNS zone records based on [RFC1035](http://www.ietf.org/rfc/rfc1035.txt) and subsequent standards.
-
-__Now with reverse record support!__
+The library can parse and encode DNS messages enabling developers to create DNS client/server platforms in pure PHP.
 
 ## Build Status
-[![Build Status](https://travis-ci.org/Badcow/DNS.png)](https://travis-ci.org/Badcow/DNS) [![Code Coverage](https://scrutinizer-ci.com/g/Badcow/DNS/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/Badcow/DNS/?branch=master) [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/Badcow/DNS/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/Badcow/DNS/?branch=master)
+[![Build Status: PHP 7](https://github.com/Badcow/DNS/workflows/PHP%207/badge.svg)](https://github.com/Badcow/DNS/actions?query=workflow%3A%22PHP+7%22)
+[![Build Status: PHP 8](https://github.com/Badcow/DNS/workflows/PHP%208/badge.svg)](https://github.com/Badcow/DNS/actions?query=workflow%3A%22PHP+8%22)
+
+## Contents
+1. [Example usage](#example-usage)
+2. [Example Output](#output)
+3. [Supported Types](#supported-types)
+4. [Parsing BIND Records](#parsing-bind-records)
 
 ## Example usage
 
 ```php
-require_once __DIR__ . '/vendor/autoload.php';
+require_once '/path/to/vendor/autoload.php';
 
+use Badcow\DNS\Classes;
 use Badcow\DNS\Zone;
 use Badcow\DNS\Rdata\Factory;
 use Badcow\DNS\ResourceRecord;
@@ -23,6 +32,7 @@ $zone->setDefaultTtl(3600);
 
 $soa = new ResourceRecord;
 $soa->setName('@');
+$soa->setClass(Classes::INTERNET);
 $soa->setRdata(Factory::Soa(
     'example.com.',
     'post.example.com.',
@@ -35,10 +45,12 @@ $soa->setRdata(Factory::Soa(
 
 $ns1 = new ResourceRecord;
 $ns1->setName('@');
+$ns1->setClass(Classes::INTERNET);
 $ns1->setRdata(Factory::Ns('ns1.nameserver.com.'));
 
 $ns2 = new ResourceRecord;
 $ns2->setName('@');
+$ns2->setClass(Classes::INTERNET);
 $ns2->setRdata(Factory::Ns('ns2.nameserver.com.'));
 
 $a = new ResourceRecord;
@@ -63,21 +75,8 @@ $mx3 = new ResourceRecord;
 $mx3->setName('@');
 $mx3->setRdata(Factory::Mx(30, 'mail-gw3.example.net.'));
 
-$loc = new ResourceRecord;
-$loc->setName('canberra');
-$loc->setRdata(Factory::Loc(
-    -35.3075,   //Lat
-    149.1244,   //Lon
-    500,        //Alt
-    20.12,      //Size
-    200.3,      //HP
-    300.1       //VP
-));
-$loc->setComment('This is Canberra');
-
-$zone->addResourceRecord($loc);
-$zone->addResourceRecord($mx2);
 $zone->addResourceRecord($soa);
+$zone->addResourceRecord($mx2);
 $zone->addResourceRecord($ns1);
 $zone->addResourceRecord($mx3);
 $zone->addResourceRecord($a);
@@ -85,9 +84,8 @@ $zone->addResourceRecord($a6);
 $zone->addResourceRecord($ns2);
 $zone->addResourceRecord($mx1);
 
-$zoneBuilder = new AlignedBuilder();
-
-echo $zoneBuilder->build($zone);
+$builder = new AlignedBuilder();
+echo $builder->build($zone);
 ```
 
 ### Output
@@ -109,166 +107,49 @@ $TTL 3600
 @            IN NS   ns2.nameserver.com.
 
 ; A RECORDS
-sub.domain   IN A    192.168.1.42; This is a local ip.
+sub.domain      A    192.168.1.42; This is a local ip.
 
 ; AAAA RECORDS
-ipv6.domain  IN AAAA ::1; This is an IPv6 domain.
+ipv6.domain     AAAA ::1; This is an IPv6 domain.
 
 ; MX RECORDS
-@            IN MX   10 mail-gw1.example.net.
-@            IN MX   20 mail-gw2.example.net.
-@            IN MX   30 mail-gw3.example.net.
-
-; LOC RECORDS
-canberra     IN LOC  (
-                     35 18 27.000 S ; LATITUDE
-                     149 7 27.840 E ; LONGITUDE
-                     500.00m        ; ALTITUDE
-                     20.12m         ; SIZE
-                     200.30m        ; HORIZONTAL PRECISION
-                     300.10m        ; VERTICAL PRECISION
-                     ); This is Canberra
+@               MX   10 mail-gw1.example.net.
+@               MX   20 mail-gw2.example.net.
+@               MX   30 mail-gw3.example.net.
 ```
 
-The above is an example of the `AlignedBuilder` which creates records that are much more aesthetically pleasing. You can also use the flat ZoneBuilder, whose output looks like below:
+The above is an example of the `AlignedBuilder` which creates records that are much more aesthetically pleasing. You can
+also use the flat `ZoneBuilder`, the output of which is below:
 
 ```php
 ...
-$zoneBuilder = new ZoneBuilder();
-
-echo $zoneBuilder->build($zone);
+echo ZoneBuilder::build($zone);
 ```
 ```txt
 $ORIGIN example.com.
 $TTL 3600
-canberra  IN LOC 35 18 27.000 S 149 7 27.840 E 500.00m 20.12m 200.30m 300.10m; This is Canberra
-@  IN MX 20 mail-gw2.example.net.
-@  IN SOA example.com. post.example.com. 2014110501 3600 14400 604800 3600
-@  IN NS ns1.nameserver.com.
-@  IN MX 30 mail-gw3.example.net.
-sub.domain  IN A 192.168.1.42; This is a local ip.
-ipv6.domain  IN AAAA ::1; This is an IPv6 domain.
-@  IN NS ns2.nameserver.com.
-@  IN MX 10 mail-gw1.example.net.
+@ IN SOA example.com. post.example.com. 2014110501 3600 14400 604800 3600
+@ MX 20 mail-gw2.example.net.
+@ IN NS ns1.nameserver.com.
+@ MX 30 mail-gw3.example.net.
+sub.domain A 192.168.1.42; This is a local ip.
+ipv6.domain AAAA ::1; This is an IPv6 domain.
+@ IN NS ns2.nameserver.com.
+@ MX 10 mail-gw1.example.net.
 ```
 
-## Reverse records now supported
+## Supported Types
+All ubiquitous DNS types are supported. For full details on supported types see [the Documentation](docs/Supported-Types.md).
+
+## Parsing BIND Records
+
+BIND Records can be parsed into PHP objects using `Badcow\DNS\Parser\Parser`
 
 ```php
-use Badcow\DNS\ZoneBuilder;
-use Badcow\DNS\Zone;
-use Badcow\DNS\Ip\Toolbox;
-use Badcow\DNS\Rdata\Factory;
-use Badcow\DNS\ResourceRecord;
-use Badcow\DNS\Classes;
-
-$origin = Toolbox::reverseIpv4('192.168.8');
-
-$soa = new ResourceRecord('@', Factory::Soa(
-    'example.com.',
-    'post.example.com.',
-    2015010101,
-    3600,
-    14400,
-    604800,
-    3600
-), null, Classes::INTERNET);
-
-$ns = new ResourceRecord('@', Factory::Ns('ns.example.com.'), null, Classes::INTERNET);
-$foo = new ResourceRecord('1', Factory::Ptr('foo.example.com.'), null, Classes::INTERNET);
-$bar = new ResourceRecord('84', Factory::Ptr('bar.example.com.'), null, Classes::INTERNET);
-$foobar = new ResourceRecord('128', Factory::Ptr('foobar.example.com.'), null, Classes::INTERNET);
-
-$zone = new Zone($origin, 14400, [
-    $soa,
-    $ns,
-    $foo,
-    $bar,
-    $foobar
-]);
-
-$builder = new ZoneBuilder();
-echo $builder->build($zone);
+$file = file_get_contents('/path/to/example.com.txt');
+$zone = Badcow\DNS\Parser\Parser::parse('example.com.', $file); //Badcow Zone Object
 ```
 
-### Output
+Simple as that.
 
-```txt
-$ORIGIN 8.168.192.in-addr.arpa.
-$TTL 14400
-@ IN SOA example.com. post.example.com. 2015010101 3600 14400 604800 3600
-@ IN NS ns.example.com.
-1 IN PTR foo.example.com.
-84 IN PTR bar.example.com.
-128 IN PTR foobar.example.com.
-```
-
-## Reverse IPv6 records
-
-```php
-use Badcow\DNS\AlignedBuilder;
-use Badcow\DNS\Zone;
-use Badcow\DNS\Ip\Toolbox;
-use Badcow\DNS\Rdata\Factory;
-use Badcow\DNS\ResourceRecord;
-use Badcow\DNS\Classes;
-
-$origin = Toolbox::reverseIpv6('2001:f83:21:5004:a56:786:1');
-
-$soa = new ResourceRecord('@', Factory::Soa(
-    'example.com.',
-    'post.example.com.',
-    2015010101,
-    3600,
-    14400,
-    604800,
-    3600
-), null, Classes::INTERNET);
-
-$ns1 = new ResourceRecord('@', Factory::Ns('ns1.example.com.'), null, Classes::INTERNET);
-$ns2 = new ResourceRecord('@', Factory::Ns('ns2.example.com.'), null, Classes::INTERNET);
-
-$foo8 = new ResourceRecord('8', Factory::Ptr('foo8.example.com.'), null, Classes::INTERNET);
-$foo9 = new ResourceRecord('9', Factory::Ptr('foo9.example.com.'), null, Classes::INTERNET);
-$fooa = new ResourceRecord('a', Factory::Ptr('fooa.example.com.'), null, Classes::INTERNET);
-$foob = new ResourceRecord('b', Factory::Ptr('foob.example.com.'), null, Classes::INTERNET);
-$fooc = new ResourceRecord('c', Factory::Ptr('fooc.example.com.'), null, Classes::INTERNET);
-
-$zone = new Zone($origin, 14400, [
-    $soa,
-    $ns1,
-    $ns2,
-    $foo8,
-    $foo9,
-    $fooa,
-    $foob,
-    $fooc,
-]);
-
-$builder = new \Badcow\DNS\ZoneBuilder();
-echo $builder->build($zone);
-```
-
-### Output
-
-```txt
-$ORIGIN 1.0.0.0.6.8.7.0.6.5.a.0.4.0.0.5.1.2.0.0.3.8.f.0.1.0.0.2.ip6.arpa.
-$TTL 14400
-@ IN SOA example.com. post.example.com. 2015010101 3600 14400 604800 3600
-@ IN NS ns1.example.com.
-@ IN NS ns2.example.com.
-8 IN PTR foo8.example.com.
-9 IN PTR foo9.example.com.
-a IN PTR fooa.example.com.
-b IN PTR foob.example.com.
-c IN PTR fooc.example.com.
-```
-
-## Running the tests
-
-Simply use phpunit to run the tests. You can run additional tests if you have BIND installed. Add the environment variable to `phpunit.xml`:
-    <env name="CHECKZONE_PATH" value="/path/to/named-checkzone"/>
-
-Or add it at run-time:
-
-    CHECKZONE_PATH="/path/to/named-checkzone" phpunit .
+More examples can be found in the [The Docs](docs/Parser)

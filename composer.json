@@ -1,22 +1,32 @@
 {
     "name": "shiniv/dns",
     "description": "A PHP library for creating DNS zone files based on RFC1035",
-    "stability": "dev",
+    "license": "MIT",
     "authors": [
         {
             "name": "Sam Williams",
             "email": "sam@badcow.co"
         }
     ],
+    "minimum-stability": "dev-master",
     "require": {
-        "php": ">=5.5"
+        "php": "^7.3 || ^8.0",
+        "rlanvin/php-ip": "^2.1",
+        "christian-riesen/base32": "^1.5.2"
     },
     "require-dev": {
-        "badcow/common": "dev-master"
+        "phpunit/phpunit": "^9.0",
+        "friendsofphp/php-cs-fixer": "^2.16",
+        "phpstan/phpstan": "^0.12"
     },
     "autoload": {
         "psr-4": {
             "Badcow\\DNS\\": "lib/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Badcow\\DNS\\Tests\\": "tests/"
         }
     }
 }

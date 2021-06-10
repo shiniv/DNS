@@ -1,39 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:noNamespaceSchemaLocation="http://schema.phpunit.de/3.7/phpunit.xsd"
-         backupGlobals="false"
-         backupStaticAttributes="false"
-         colors="true"
-         convertErrorsToExceptions="true"
-         convertNoticesToExceptions="true"
-         convertWarningsToExceptions="true"
-         processIsolation="false"
-         stopOnFailure="false"
-         syntaxCheck="false"
-         bootstrap="vendor/autoload.php"
-        >
-    <php>
-        <ini name="error_reporting" value="-1" />
-        <!--
-            If you have bind installed you can run additional tests here.
-            <env name="CHECKZONE_PATH" value="named-checkzone"/>
-        -->
-        <!--If you want to print the test zone file to the terminal change value to "True"-->
-        <env name="PRINT_TEST_ZONE" value="False"/>
-    </php>
-    <testsuites>
-        <testsuite name="Badcow DNS Zone Test Suite">
-            <directory>./lib/Tests</directory>
-        </testsuite>
-    </testsuites>
-    <filter>
-        <whitelist>
-            <directory>./lib</directory>
-            <exclude>
-                <directory>./lib/Tests</directory>
-                <directory>./vendor</directory>
-            </exclude>
-        </whitelist>
-    </filter>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" colors="true" bootstrap="vendor/autoload.php" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd">
+  <coverage>
+    <include>
+      <directory>./lib</directory>
+    </include>
+    <exclude>
+      <directory>./tests</directory>
+      <directory>./vendor</directory>
+    </exclude>
+  </coverage>
+  <php>
+    <ini name="error_reporting" value="-1"/>
+    <ini name="date.timezone" value="UTC"/>
+  </php>
+  <testsuites>
+    <testsuite name="Badcow DNS Zone Test Suite">
+      <directory>./tests</directory>
+    </testsuite>
+  </testsuites>
 </phpunit>
