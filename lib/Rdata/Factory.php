@@ -12,13 +12,10 @@ declare(strict_types=1);
  */
 
 namespace Badcow\DNS\Rdata;
-<<<<<<< HEAD
-=======
 
 use Badcow\DNS\Parser\ParseException;
 use Badcow\DNS\Parser\Tokens;
 use PhpIP\IPBlock;
->>>>>>> upstream/master
 
 class Factory
 {
@@ -259,10 +256,6 @@ class Factory
 
     public static function NSEC(string $nextDomainName, array $types): NSEC
     {
-<<<<<<< HEAD
-        $rdata = new PtrRdata();
-        $rdata->setAddress($target);
-=======
         $rdata = new NSEC();
         $rdata->setNextDomainName($nextDomainName);
         array_map([$rdata, 'addType'], $types);
@@ -429,18 +422,9 @@ class Factory
         $hip->setHostIdentityTag($hostIdentityTag);
         $hip->setPublicKey($publicKey);
         array_map([$hip, 'addRendezvousServer'], $rendezvousServers);
->>>>>>> upstream/master
 
         return $hip;
     }
-<<<<<<< HEAD
-    
-    public static function Caa($target) {
-        $rdata = new CaaRdata();
-        $rdata->setTarget($target);
-        
-        return $rdata;
-=======
 
     /**
      * @param int         $precedence an 8-bit unsigned integer
@@ -614,6 +598,5 @@ class Factory
         $uri->setTarget($target);
 
         return $uri;
->>>>>>> upstream/master
     }
 }

@@ -51,24 +51,7 @@ class Validator
             return false;
         }
 
-<<<<<<< HEAD
-        array_pop($parts);
-
-        foreach ($parts as $part) {
-            //Does the string begin with a non alpha char?
-            if (1 === preg_match('/^[^a-z0-9]/i', $part)) {
-                return false;
-            }
-
-            if (1 !== preg_match('/^[a-z0-9_\-]+$/i', $part)) {
-                return false;
-            }
-        }
-
-        return true;
-=======
         return self::hostName($name);
->>>>>>> upstream/master
     }
 
     /**
@@ -77,46 +60,8 @@ class Validator
      */
     public static function resourceRecordName(string $name): bool
     {
-<<<<<<< HEAD
-        if ($string === '@') {
-            return true;
-        }
-
-        if ($string === '*.') {
-            return false;
-        }
-
-        $parts = explode('.', strtolower($string));
-        $hasTrailingDot = (end($parts) === '');
-
-        if ($trailingDot && !$hasTrailingDot) {
-            return false;
-        }
-
-        if ($hasTrailingDot) {
-            array_pop($parts);
-        }
-
-        foreach ($parts as $i => $part) {
-            //Does the string begin with a non alpha char?
-            if (1 === preg_match('/^[^a-z0-9]/', $part)) {
-                if ('*' === $part && 0 === $i) {
-                    continue;
-                }
-
-                return false;
-            }
-
-            if (1 !== preg_match('/^[a-z0-9_\-]+$/', $part)) {
-                return false;
-            }
-        }
-
-        return true;
-=======
         return strlen($name) < 254 &&
             (1 === preg_match('/(?:^(?:\*\.)?((?!-)[a-z0-9_\-]{1,63}(?<!-)\.?){1,127}$)|^@$|^\*$/i', $name));
->>>>>>> upstream/master
     }
 
     /**
@@ -147,27 +92,6 @@ class Validator
      * Validates an IPv4 or IPv6 address.
      *
      * @static
-<<<<<<< HEAD
-     *
-     * @param $ipAddress
-     *
-     * @return bool
-     */
-    public static function validateIpAddress($ipAddress)
-    {
-        return (bool) filter_var($ipAddress, FILTER_VALIDATE_IP);
-    }
-
-    /**
-     * Validates a zone file.
-     *
-     * @param string $zonename
-     * @param string $directory
-     * @param string $named_checkzonePath
-     *
-     * @return bool
-=======
->>>>>>> upstream/master
      */
     public static function ipAddress(string $address): bool
     {
@@ -214,16 +138,10 @@ class Validator
     }
 
     /**
-<<<<<<< HEAD
-     * @param ZoneInterface $zone
-     * @param null $type The ResourceRecord type to be counted. If NULL, then the method will return
-     *                   the total number of resource records.
-=======
      * Counts the number of Resource Records of a particular type ($type) in a Zone.
      *
      * @param string $type The ResourceRecord type to be counted. If NULL, then the method will return
      *                     the number of records without RData.
->>>>>>> upstream/master
      *
      * @return int the number of records to be counted
      */
@@ -238,13 +156,7 @@ class Validator
     }
 
     /**
-<<<<<<< HEAD
-     * @param string $address
-     *
-     * @return bool
-=======
      * Validates a reverse IPv4 address. Ensures that all octets are in the range [0-255].
->>>>>>> upstream/master
      */
     public static function reverseIpv4(string $address): bool
     {
@@ -267,13 +179,7 @@ class Validator
     }
 
     /**
-<<<<<<< HEAD
-     * @param string $address
-     *
-     * @return bool
-=======
      * Validates a reverse IPv6 address.
->>>>>>> upstream/master
      */
     public static function reverseIpv6(string $address): bool
     {
